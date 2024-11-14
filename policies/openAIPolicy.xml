@@ -1,0 +1,38 @@
+<!--
+    - Policies are applied in the order they appear.
+    - Position <base/> inside a section to inherit policies from the outer scope.
+    - Comments within policies are not preserved.
+-->
+<!-- Add policies as children to the <inbound>, <outbound>, <backend>, and <on-error> elements -->
+    <policies>
+        <!-- Throttle, authorize, validate, cache, or transform the requests -->
+        <inbound>
+            <base />
+            <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="managed-id-access-token" ignore-error="false" />
+            <set-header name="Authorization" exists-action="override">
+                <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
+            </set-header>
+            <azure-openai-emit-token-metric namespace="AzureOpenAI">
+                <dimension name="User ID" />
+                <dimension name="Client IP" value="@(context.Request.IpAddress)" />
+                <dimension name="Subscription ID" />
+                <dimension name="API ID" />
+            </azure-openai-emit-token-metric>
+            <set-backend-service backend-id="****OPENAI_BACKEND_POOL*****" />
+        </inbound>
+        <!-- Control if and how the requests are forwarded to services  -->
+        <backend>
+            <!--Set count to one less than the number of backends in the pool to try all backends until the backend pool is temporarily unavailable.-->
+            <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 && !context.Response.StatusReason.Contains("Backend pool") && !context.Response.StatusReason.Contains("is temporarily unavailable")))">
+                <forward-request buffer-request-body="true" />
+            </retry>
+        </backend>
+        <!-- Customize the responses -->
+        <outbound>
+            <base />
+        </outbound>
+        <!-- Handle exceptions and customize error responses  -->
+        <on-error>
+            <base />
+        </on-error>
+    </policies>

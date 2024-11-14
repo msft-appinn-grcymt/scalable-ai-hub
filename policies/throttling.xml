@@ -1,0 +1,30 @@
+<!--
+    - Policies are applied in the order they appear.
+    - Position <base/> inside a section to inherit policies from the outer scope.
+    - Comments within policies are not preserved.
+-->
+<!-- Add policies as children to the <inbound>, <outbound>, <backend>, and <on-error> elements -->
+    <policies>
+        <!-- Throttle, authorize, validate, cache, or transform the requests -->
+        <inbound>
+            <base />
+            <set-variable name='isOpenAI' value='@(context.Request.Url.Path.Contains("openai"))' />
+            <choose>
+                <when condition='@(context.Variables.GetValueOrDefault<bool>("isOpenAI"))'>
+                    <azure-openai-token-limit counter-key="@(context.Request.Headers.GetValueOrDefault("Ocp-Apim-Subscription-Key",""))" tokens-per-minute="{{**ProductName**TPMLimit}}" estimate-prompt-tokens="false" remaining-tokens-variable-name="remainingTokens" />
+                </when>
+            </choose>
+        </inbound>
+        <!-- Control if and how the requests are forwarded to services  -->
+        <backend>
+            <base />
+        </backend>
+        <!-- Customize the responses -->
+        <outbound>
+            <base />
+        </outbound>
+        <!-- Handle exceptions and customize error responses  -->
+        <on-error>
+            <base />
+        </on-error>
+    </policies>

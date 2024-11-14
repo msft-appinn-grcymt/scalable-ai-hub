@@ -1,0 +1,5 @@
+{
+    "type": "string",
+    "description": "api version",
+    "x-apim-inline": true
+}

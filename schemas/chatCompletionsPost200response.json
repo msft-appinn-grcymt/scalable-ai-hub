@@ -1,0 +1,96 @@
+{
+    "required": [
+        "id",
+        "object",
+        "created",
+        "model",
+        "choices"
+    ],
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string"
+        },
+        "object": {
+            "type": "string"
+        },
+        "created": {
+            "type": "integer"
+        },
+        "model": {
+            "type": "string"
+        },
+        "choices": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string"
+                    },
+                    "index": {
+                        "type": "integer"
+                    },
+                    "logprobs": {
+                        "type": "object",
+                        "properties": {
+                            "tokens": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "token_logprobs": {
+                                "type": "array",
+                                "items": {
+                                    "type": "number"
+                                }
+                            },
+                            "top_logprobs": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "number"
+                                    }
+                                }
+                            },
+                            "text_offset": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "finish_reason": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "usage": {
+            "required": [
+                "prompt_tokens",
+                "total_tokens",
+                "completion_tokens"
+            ],
+            "type": "object",
+            "properties": {
+                "completion_tokens": {
+                    "type": "number",
+                    "format": "int32"
+                },
+                "prompt_tokens": {
+                    "type": "number",
+                    "format": "int32"
+                },
+                "total_tokens": {
+                    "type": "number",
+                    "format": "int32"
+                }
+            }
+        }
+    },
+    "x-apim-inline": true
+}

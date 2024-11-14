@@ -1,0 +1,261 @@
+param name string
+param location string = resourceGroup().location
+param tags object = {}
+
+//NSG for APIM Subnet
+resource apiNsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
+  name: name
+  location: location
+  tags: tags
+  properties: {
+    /// https://learn.microsoft.com/en-us/azure/api-management/virtual-network-reference?tabs=stv2#required-ports
+    securityRules: [
+      { //External Vnet Only
+        name: 'Client_communication_to_API_Management'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRanges: [
+            '80'
+            '443'
+          ]
+          sourceAddressPrefix: 'Internet'
+          destinationAddressPrefix: 'VirtualNetwork'
+          access: 'Allow'
+          priority: 100
+          direction: 'Inbound'
+        }
+      }
+      {
+        name: 'Management_endpoint_for_Azure_portal_and_Powershell'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '3443'
+          sourceAddressPrefix: 'ApiManagement'
+          destinationAddressPrefix: 'VirtualNetwork'
+          access: 'Allow'
+          priority: 110
+          direction: 'Inbound'
+        }
+      }
+      { 
+        name: 'Dependency_on_Azure_Storage'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'Storage'
+          access: 'Allow'
+          priority: 120
+          direction: 'Outbound'
+        }
+      }
+      { 
+        name: 'Azure_Active_Directory_and_Azure_Key_Vault_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'AzureActiveDirectory'
+          access: 'Allow'
+          priority: 130
+          direction: 'Outbound'
+        }
+      }
+      {  
+        name: 'Authorizations_dependency_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'AzureConnectors'
+          access: 'Allow'
+          priority: 140
+          direction: 'Outbound'
+        }
+      }
+      {  
+        name: 'Access_to_Azure_SQL_Endpoints'
+        properties: {
+          protocol: 'TCP'
+          sourcePortRange: '*'
+          destinationPortRange: '1433'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'Sql'
+          access: 'Allow'
+          priority: 150
+          direction: 'Outbound'
+        }
+      }
+      {  
+        name: 'Access_To_Azure_Key_Vault'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'AzureKeyVault'
+          access: 'Allow'
+          priority: 160
+          direction: 'Outbound'
+        }
+      }
+      { 
+        name: 'Dependency_For_Log_To_Azure_EventHubs_Policy_And_Azure_Monitor_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRanges: [
+            '5671'
+            '5672'
+            '444'
+          ]
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'EventHub'
+          access: 'Allow'
+          priority: 170
+          direction: 'Outbound'
+        }
+      }
+      { 
+        name: 'Dependency_on_Azure_File_Share_for_GIT_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '445'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'Storage'
+          access: 'Allow'
+          priority: 180
+          direction: 'Outbound'
+        }
+      }
+      {
+        name: 'Publish_Diagnostic_Logs_And_Metrics_And_Application_Insights_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRanges: [
+            '1886'
+            '443'
+          ] 
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'AzureMonitor'
+          access: 'Allow'
+          priority: 190
+          direction: 'Outbound'
+        }
+      }
+      { 
+        name: 'Access_External_Azure_Redis_Cache_Outbound_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'VirtualNetwork'
+          access: 'Allow'
+          priority: 200
+          direction: 'Outbound'
+          destinationPortRange: '6380'
+       }
+      }
+      { 
+        name: 'Access_External_Azure_Redis_Cache_Inbound_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'VirtualNetwork'
+          access: 'Allow'
+          priority: 200
+          direction: 'Inbound'
+          destinationPortRange: '6380'
+       }
+      }      
+      { 
+        name: 'Access_Internal_Azure_Redis_Cache_Outbound_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'VirtualNetwork'
+          access: 'Allow'
+          priority: 210
+          direction: 'Outbound'
+          destinationPortRange: '6381-6383'
+       }
+      }
+      { 
+        name: 'Access_Internal_Azure_Redis_Cache_Inbound_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'VirtualNetwork'
+          access: 'Allow'
+          priority: 210
+          direction: 'Inbound'
+          destinationPortRange: '6381-6383'
+       }
+      }      
+      { 
+        name: 'Sync_Counters_For_Rate_Limit_Policies_Outbound_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'VirtualNetwork'
+          access: 'Allow'
+          priority: 220
+          direction: 'Outbound'
+          destinationPortRange: '4290'
+       }
+      } 
+      { 
+        name: 'Sync_Counters_For_Rate_Limit_Policies_Inbound_Optional'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'VirtualNetwork'
+          access: 'Allow'
+          priority: 220
+          direction: 'Inbound'
+          destinationPortRange: '4290'
+       }
+      }       
+      { 
+        name: 'Azure_Infrastructure_Load_Balancer'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          sourceAddressPrefix: 'AzureLoadBalancer'
+          destinationAddressPrefix: 'VirtualNetwork'
+          access: 'Allow'
+          priority: 230
+          direction: 'Inbound'
+          destinationPortRange: '6390'
+       }
+      }        
+      {
+        name: 'Deny_All_Internet_Outbound'
+        properties: {
+          protocol: '*'
+          sourcePortRange: '*'
+          destinationPortRange: '*'
+          sourceAddressPrefix: 'VirtualNetwork'
+          destinationAddressPrefix: 'Internet'
+          access: 'Deny'
+          priority: 999
+          direction: 'Outbound'
+        }
+      }
+    ]
+  }
+}
+
+output id string = apiNsg.id
