@@ -350,6 +350,20 @@ resource piiDetect 'Microsoft.ApiManagement/service/apis/operations@2023-09-01-p
   }
 }
 
+//MARK: Language API Policies
+
+// Add the API policies for Spillover/Failover and emmit metrics
+var languagePolicy = loadTextContent('../policies/languagePolicy.xml')
+var languagePolicyBackendPoolPlaceholder = '****LANGUAGE_BACKEND_POOL*****'
+
+resource languageApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-09-01-preview' = {
+  name: 'languagepolicy'
+  parent: languageAPI
+  properties: {
+    value: replace(languagePolicy,languagePolicyBackendPoolPlaceholder,backends[2].name)
+    format: 'rawxml'
+  }}
+
 //MARK: APIM Logger (for emmiting metrics)
 
 resource aiLogger 'Microsoft.ApiManagement/service/loggers@2023-09-01-preview' = {
