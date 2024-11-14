@@ -180,22 +180,13 @@ resource backends 'Microsoft.ApiManagement/service/backends@2023-09-01-preview' 
     description: aiBackend.description
     url: aiBackend.endpoint
     protocol: 'http'
-    // credentials: {
-    //   header: contains(aiBackend.endpoint,'openai') ? {
-    //     'api-key' : [
-    //      '{{${secretNamedValues[i].name}}}'
-    //       ]
-    //     }      
-    //   : {
-    //      'Ocp-Apim-Subscription-Key' : [
-    //       '{{${secretNamedValues[i].name}}}'
-    //        ]
-    //      }
-    // }
-    // tls: {
-    //   validateCertificateChain: true
-    //   validateCertificateName: true
-    // }
+    credentials: aiBackend.name == 'LanguageEndpoint' ? {
+      header: {
+         'Ocp-Apim-Subscription-Key' : [
+          '{{${secretNamedValues[2].name}}}'
+           ]
+         }
+    } : null   
     type: 'Single'
     // Add the circuit breaker for the primary endpoint
     circuitBreaker: aiBackend.name != 'LanguageEndpoint' ? {
