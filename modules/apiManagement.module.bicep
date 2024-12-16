@@ -357,7 +357,7 @@ var languagePolicy = loadTextContent('../policies/languagePolicy.xml')
 var languagePolicyBackendPoolPlaceholder = '****LANGUAGE_BACKEND_POOL*****'
 
 resource languageApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-09-01-preview' = {
-  name: 'languagepolicy'
+  name: 'policy'
   parent: languageAPI
   properties: {
     value: replace(languagePolicy,languagePolicyBackendPoolPlaceholder,backends[2].name)

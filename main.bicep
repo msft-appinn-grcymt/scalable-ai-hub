@@ -120,8 +120,8 @@ module apimNSG 'modules/networkSecurityGroup.module.bicep' = {
 
 //MARK: Vnet
 
-module vnet 'modules/vnet.module.bicep' = {
-  name: 'Vnet-${applicationName}-Deployment'
+module vnet './modules/vnet.module.bicep' = {
+  name: 'vnet-test'
   params: {
     addressPrefix: vnetAddressPrefix
     subnets: [
