@@ -10,6 +10,8 @@ param organization string
 param applicationName string
 @description('The environment to deploy the resources to')
 param environment string
+@description('The name of the VNet')
+param vnetName string
 @description('The CIDR block to use for the virtual network')
 param vnetAddressPrefix string
 @description('The CIDR for API Management subnet')
@@ -20,6 +22,14 @@ param appGatewayAddressPrefix string
 param privateLinkAddressPrefix string
 @description('The CIDR for Private Endpoints subnet')
 param privateEndpointsAddressPrefix string
+@description('The CIDR for App Service subnet')
+param appServiceAddressPrefix string
+@description('The CIDR for Functions subnet')
+param functionsAddressPrefix string
+@description('Subscription ID which contains the existing Private DNS Zones')
+param privateDnsZonesSubscriptionId string
+@description('Resource Group which contains the existing Private DNS Zones')
+param privateDnsZonesResourceGroup string
 @description('SKU for the Language AI Service')
 param languageServiceSku string = 'S'
 @description('Array containing all the OpenAI deployments along with their configurations and model deployment if needed')
@@ -75,7 +85,7 @@ var resourceNames = {
   jumpboxVM: take('jb-${names.virtualMachine.name}',15)
   languageService: 'lng-${names.cognitiveAccount.name}'
   openAI: 'oai-${names.cognitiveAccount.name}'
-  apim: 'apimeurobankgenaiuatneu01' //'${names.apiManagement.name}001'
+  apim: '${names.apiManagement.name}'
   userAssignedIdentityApim: 'uai-${names.apiManagement.name}'
   apimNSG: '${names.networkSecurityGroup.name}-apim'
   applicationGateway: names.applicationGateway.name
@@ -88,85 +98,144 @@ var privateDnsZonesToCreate = [
     name: 'dns-apim'
     dnsName: 'azure-api.net' 
   }
-  // {
-  //   //For AI Services
-  //   name: 'dns-ai'
-  //   dnsName: 'privatelink.cognitiveservices.azure.com'
-  // }
-  // {
-  //   //ForOpenAI
-  //   name: 'dns-openai'    
-  //   dnsName: 'privatelink.openai.azure.com'
-  // }
-  // {
-  //   //For Key Vault
-  //   name: 'dns-keyvault'    
-  //   dnsName: 'privatelink.vaultcore.azure.net'
-  // }
-
 ]
 
 //MARK: NSG for API Management
 
-// module apimNSG 'modules/networkSecurityGroup.module.bicep' = {
-//   name: 'NSG-${resourceNames.apimNSG}-Deployment'
-//   params: {
-//     name: resourceNames.apimNSG
-//     location: location
-//     apim: true
-//     tags: tags
-//   }
-// }
+module apimNSG 'modules/networkSecurityGroup.module.bicep' = {
+  name: 'NSG-${resourceNames.apimNSG}-Deployment'
+  params: {
+    name: resourceNames.apimNSG
+    location: location
+    apim: true
+    tags: tags
+  }
+}
 
 //MARK: Vnet
 
-resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' existing = {
-  name: 'vnet-eurobankgenai-uat-neu'
+module vnet './modules/vnet.module.bicep' = {
+  name: 'VNet-Deployment'
+  params: {
+    addressPrefix: vnetAddressPrefix
+    subnets: [
+      {
+        name: 'privateendpoints-snet'
+        properties: {
+          addressPrefix: privateEndpointsAddressPrefix
+          privateEndpointNetworkPolicies: 'Disabled'
+        }
+      }
+      {
+        name: 'apim-snet'
+        properties: {
+          addressPrefix: apimAddressPrefix
+          networkSecurityGroup: {
+            id: apimNSG.outputs.nsgId
+          }
+        }
+      }
+      //App GW /28
+      {
+        name: 'applicationgateway-snet'
+        properties: {
+          addressPrefix: appGatewayAddressPrefix
+        }
+      }      
+      //Private link /28
+      {
+        name: 'privatelink-snet'
+        properties: {
+          addressPrefix: privateLinkAddressPrefix
+          privateEndpointNetworkPolicies: 'Disabled'
+          privateLinkServiceNetworkPolicies: 'Disabled'
+        }
+      }    
+      //App Service /27
+      {
+        name: 'app-snet'
+        properties: {
+          addressPrefix: appServiceAddressPrefix
+          serviceEndpoints: [
+            {
+            locations: [
+              '*'
+              ]
+            service: 'Microsoft.KeyVault'  
+            }
+            {
+            locations: [
+              '*'
+              ]
+            service: 'Microsoft.AzureCosmosDB'  
+            }
+            {
+            locations: [
+                '*'
+                ]
+            service: 'Microsoft.Storage'  
+              }  
+            {
+            locations: [
+                '*'
+                ]
+            service: 'Microsoft.CognitiveServices'  
+            }                                                  
+          ]    
+          delegations: [
+            {
+              // name: 'containerApps'
+              name: 'appservice'
+              properties: {
+                // serviceName: 'Microsoft.App/environments'
+                serviceName: 'Microsoft.Web/serverFarms'
+              }
+            }
+          ]          
+        }
+      }   
+      // Functions /27
+      {
+        name: 'func-snet'
+        properties: {
+          addressPrefix: functionsAddressPrefix
+          serviceEndpoints: [
+            {
+            locations: [
+              '*'
+              ]
+            service: 'Microsoft.Storage'  
+            }  
+            {
+            locations: [
+              '*'
+              ]
+            service: 'Microsoft.CognitiveServices'  
+            }   
+            {
+            locations: [
+              '*'
+              ]
+            service: 'Microsoft.KeyVault'  
+            }                      
+          ]
+          delegations: [
+            {
+              name: 'function'
+              properties: {
+                serviceName: 'Microsoft.Web/serverFarms'
+              }
+            }           
+          ]          
+                
+        }
+      }                
+    ]
+    name: vnetName
+    location: location
+    tags: tags
+  }
 }
-
-// module vnet 'modules/vnet.module.bicep' = {
-//   name: 'Vnet-${applicationName}-Deployment'
-//   params: {
-//     addressPrefix: vnetAddressPrefix
-//     subnets: [
-//       {
-//         name: 'privateendpoints-snet'
-//         properties: {
-//           addressPrefix: privateEndpointsAddressPrefix
-//           privateEndpointNetworkPolicies: 'Disabled'
-//         }
-//       }
-//       {
-//         name: 'apim-snet'
-//         properties: {
-//           addressPrefix: apimAddressPrefix
-//           networkSecurityGroup: {
-//             id: apimNSG.outputs.nsgId
-//           }
-//         }
-//       }
-//       //App GW /28
-//       {
-//         name: 'applicationgateway-snet'
-//         properties: {
-//           addressPrefix: appGatewayAddressPrefix
-//         }
-//       }      
-//       //Private link /28
-//       {
-//         name: 'privatelink-snet'
-//         properties: {
-//           addressPrefix: privateLinkAddressPrefix
-//           privateEndpointNetworkPolicies: 'Disabled'
-//           privateLinkServiceNetworkPolicies: 'Disabled'
-//         }
-//       }          
-//     ]
-//     name: resourceNames.vnet
-//     location: location
-//     tags: tags
-//   }
-// }
 
 // MARK: Dns
 
@@ -174,59 +243,109 @@ module privateDnsZones 'modules/privateDnsZone.module.bicep' = {
   name: 'privateDnsZones-Deployment'
   params: {
    dnsZones: privateDnsZonesToCreate
-   vnetIds: [vnet.id]
+   vnetIds: [vnet.outputs.vnetId]
    tags: tags
   }
  }
 
+
+// MARK: Existing Private DNS Zones
+
+
+resource DNSCognitive 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
+  scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
+  name: 'privatelink.cognitiveservices.azure.com'
+}
+
+module privateDnsZoneLinkCognitive 'modules/privateDnsZoneLink.module.bicep' = {
+  name: 'privateDnsZoneLinkCognitive-Deployment'
+  scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
+  params: {
+    privateDnsZoneName: 'privatelink.cognitiveservices.azure.com'
+    vnetIds: [vnet.outputs.vnetId]
+    tags: tags
+  }
+}
+
+resource DNSOpenAI 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
+  scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
+  name: 'privatelink.openai.azure.com'
+}
+
+module privateDnsZoneLinkOpenAI 'modules/privateDnsZoneLink.module.bicep' = {
+  name: 'privateDnsZoneLinkOpenAI-Deployment'
+  scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
+  params: {
+    privateDnsZoneName: 'privatelink.openai.azure.com'
+    vnetIds: [vnet.outputs.vnetId]
+    tags: tags
+  }
+}
+
+resource DNSKeyVault 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
+  scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
+  name: 'privatelink.vaultcore.azure.net'
+}
+
+module privateDnsZoneLinkKeyVault 'modules/privateDnsZoneLink.module.bicep' = {
+  name: 'privateDnsZoneLinkKeyVault-Deployment'
+  scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
+  params: {
+    privateDnsZoneName: 'privatelink.vaultcore.azure.net'
+    vnetIds: [vnet.outputs.vnetId]
+    tags: tags
+  }
+}
+
+
  // MARK: App Insights
  // Application Insights and Log Analytics Workspace
 
-// module appInsights 'modules/appInsights.module.bicep' = {
-//   name: 'AppInsights-${resourceNames.applicationInsights}-Deployment'
-//   params: {
-//     location: location
-//     name: resourceNames.applicationInsights
-//     projectName: applicationName
-//     keyVaultName: keyVault.outputs.name
-//   }
-// }
+module appInsights 'modules/appInsights.module.bicep' = {
+  name: 'AppInsights-${resourceNames.applicationInsights}-Deployment'
+  params: {
+    location: location
+    name: resourceNames.applicationInsights
+    projectName: applicationName
+    keyVaultName: keyVault.outputs.name
+  }
+}
 
 // MARK: Language Service
 
-// module languageService 'modules/cognitiveservices.module.bicep' = {
-//   name: '${resourceNames.languageService}-Deployment'
-//   params: {
-//     name: resourceNames.languageService
-//     kind: 'TextAnalytics'
-//     location: location
-//     sku: languageServiceSku
-//     privateDnsZoneId:   first(filter(privateDnsZones.outputs.zones, zone => zone.deploymentName == 'dns-ai')).id
-//     privateEndpointSubnet: first(filter(vnet.properties.subnets, subnet => subnet.name == 'privateendpoints-snet')).id
-//     keyVaultName: keyVault.outputs.name
-//   }
-// }
+module languageService 'modules/cognitiveservices.module.bicep' = {
+  name: '${resourceNames.languageService}-Deployment'
+  params: {
+    name: resourceNames.languageService
+    kind: 'TextAnalytics'
+    location: location
+    sku: languageServiceSku
+    privateDnsZoneId:   DNSCognitive.id
+    privateEndpointSubnet: first(filter(vnet.outputs.subnets, subnet => subnet.name == 'privateendpoints-snet')).id
+    keyVaultName: keyVault.outputs.name
+  }
+}
 
 // MARK: OpenAI 
 
-// module openAI 'modules/cognitiveservices.module.bicep' = [ for (openAI,i) in openAIDeployments : {
-//   name: '${resourceNames.openAI}-${i}-Deployment'
-//   params: {
-//     name: '${resourceNames.openAI}-${i}'
-//     kind: 'OpenAI'
-//     location: openAILocation
-//     privateEndpointLocation: location
-//     sku: openAI.openAISku
-//     deployModel: openAI.deployOpenAIModel
-//     modelName: openAI.openAIModelName
-//     modelVersion: openAI.openAIModelVersion
-//     modelCapacityType: openAI.openAIModelCapacityType
-//     modelCapacity: openAI.openAIModelCapacity
-//     privateDnsZoneId: first(filter(privateDnsZones.outputs.zones, zone => zone.deploymentName == 'dns-openai')).id
-//     privateEndpointSubnet: first(filter(vnet.properties.subnets, subnet => subnet.name == 'privateendpoints-snet')).id
-//     keyVaultName: keyVault.outputs.name
-//   }
-// }]
+module openAI 'modules/cognitiveservices.module.bicep' = [ for (openAI,i) in openAIDeployments : {
+  name: '${resourceNames.openAI}-${i}-Deployment'
+  params: {
+    name: '${resourceNames.openAI}-${i}'
+    kind: 'OpenAI'
+    location: openAILocation
+    privateEndpointLocation: location
+    sku: openAI.openAISku
+    deployModel: openAI.deployOpenAIModel
+    modelName: openAI.openAIModelName
+    modelVersion: openAI.openAIModelVersion
+    modelCapacityType: openAI.openAIModelCapacityType
+    modelCapacity: openAI.openAIModelCapacity
+    privateDnsZoneId: DNSOpenAI.id
+    privateEndpointSubnet: first(filter(vnet.outputs.subnets, subnet => subnet.name == 'privateendpoints-snet')).id
+    keyVaultName: keyVault.outputs.name
+  }
+}]
 
 // MARK: APIM
 
@@ -258,7 +377,7 @@ module apim 'modules/apiManagement.module.bicep' = {
     name: resourceNames.apim
     location: location
     skuName: apimSKU
-    apimSubnetId: first(filter(vnet.properties.subnets, subnet => subnet.name == 'apim-snet')).id
+    apimSubnetId: first(filter(vnet.outputs.subnets, subnet => subnet.name == 'apim-snet')).id
     apimDnsZoneName: first(filter(privateDnsZones.outputs.zones, zone => zone.deploymentName == 'dns-apim')).dnsName
     aiBackends: aiBackends
     keyVaultName: keyVault.outputs.name
@@ -280,7 +399,7 @@ module jumpboxVM 'modules/vmjumpbox.module.bicep' = {
   params: {
     name: resourceNames.jumpboxVM
     location: location
-    subnetId: first(filter(vnet.properties.subnets, subnet => subnet.name == 'privateendpoints-snet')).id
+    subnetId: first(filter(vnet.outputs.subnets, subnet => subnet.name == 'privateendpoints-snet')).id
     adminPassword: VmAdminPassword
     adminUserName: VmAdminUsername
   }
@@ -295,29 +414,13 @@ module keyVault 'modules/keyvault.module.bicep' = {
     location: location
     skuName: keyVaultSku
     tags: tags
-    privateDnsZoneId: first(filter(privateDnsZones.outputs.zones, zone => zone.deploymentName == 'dns-keyvault')).id
-    privateEndpointSubnet: first(filter(vnet.properties.subnets, subnet => subnet.name == 'privateendpoints-snet')).id
+    privateDnsZoneId: DNSKeyVault.id
+    privateEndpointSubnet: first(filter(vnet.outputs.subnets, subnet => subnet.name == 'privateendpoints-snet')).id
   }
 }
 
-// MARK: App Gateway
-
-// module applicationGateway 'modules/applicationGateway.module.bicep' = {
-//   name: resourceNames.applicationGateway
-//   params: {
-//     name: resourceNames.applicationGateway
-//     location: location
-//     tags: tags
-//     dnsLabelPrefix: resourceNames.applicationGateway
-//     frontendWebAppFqdn: replace(apim.outputs.gatewayUrl, 'https://', '')
-//     subnetId: first(filter(vnet.outputs.subnets, subnet => subnet.name == 'applicationgateway-snet')).id
-//     privateLinkSubnetId: first(filter(vnet.outputs.subnets, subnet => subnet.name == 'privatelink-snet')).id
-//     privateIp: vnet.outputs.appGWprivateIp
-//   }
-// }
 
 // MARK: Outputs
 
 output apimName string = apim.outputs.name
-// output applicationGatewayName string = applicationGateway.outputs.name
 output products array = apim.outputs.products

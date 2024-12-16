@@ -423,7 +423,7 @@ var apimRules = apim ? [
       destinationPortRange: '*'
       sourceAddressPrefix: 'VirtualNetwork'
       destinationAddressPrefix: 'Internet'
-      access: 'Deny'
+      access: 'Allow'
       priority: 999
       direction: 'Outbound'
     }
