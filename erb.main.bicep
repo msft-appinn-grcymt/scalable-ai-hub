@@ -257,45 +257,45 @@ resource DNSCognitive 'Microsoft.Network/privateDnsZones@2024-06-01' existing = 
   name: 'privatelink.cognitiveservices.azure.com'
 }
 
-module privateDnsZoneLinkCognitive 'modules/privateDnsZoneLink.module.bicep' = {
-  name: 'privateDnsZoneLinkCognitive-Deployment'
-  scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
-  params: {
-    privateDnsZoneName: 'privatelink.cognitiveservices.azure.com'
-    vnetIds: [vnet.outputs.vnetId]
-    tags: tags
-  }
-}
+// module privateDnsZoneLinkCognitive 'modules/privateDnsZoneLink.module.bicep' = {
+//   name: 'privateDnsZoneLinkCognitive-Deployment'
+//   scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
+//   params: {
+//     privateDnsZoneName: 'privatelink.cognitiveservices.azure.com'
+//     vnetIds: [vnet.outputs.vnetId]
+//     tags: tags
+//   }
+// }
 
 resource DNSOpenAI 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
   scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
   name: 'privatelink.openai.azure.com'
 }
 
-module privateDnsZoneLinkOpenAI 'modules/privateDnsZoneLink.module.bicep' = {
-  name: 'privateDnsZoneLinkOpenAI-Deployment'
-  scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
-  params: {
-    privateDnsZoneName: 'privatelink.openai.azure.com'
-    vnetIds: [vnet.outputs.vnetId]
-    tags: tags
-  }
-}
+// module privateDnsZoneLinkOpenAI 'modules/privateDnsZoneLink.module.bicep' = {
+//   name: 'privateDnsZoneLinkOpenAI-Deployment'
+//   scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
+//   params: {
+//     privateDnsZoneName: 'privatelink.openai.azure.com'
+//     vnetIds: [vnet.outputs.vnetId]
+//     tags: tags
+//   }
+// }
 
 resource DNSKeyVault 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
   scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
   name: 'privatelink.vaultcore.azure.net'
 }
 
-module privateDnsZoneLinkKeyVault 'modules/privateDnsZoneLink.module.bicep' = {
-  name: 'privateDnsZoneLinkKeyVault-Deployment'
-  scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
-  params: {
-    privateDnsZoneName: 'privatelink.vaultcore.azure.net'
-    vnetIds: [vnet.outputs.vnetId]
-    tags: tags
-  }
-}
+// module privateDnsZoneLinkKeyVault 'modules/privateDnsZoneLink.module.bicep' = {
+//   name: 'privateDnsZoneLinkKeyVault-Deployment'
+//   scope: resourceGroup(privateDnsZonesSubscriptionId,privateDnsZonesResourceGroup)
+//   params: {
+//     privateDnsZoneName: 'privatelink.vaultcore.azure.net'
+//     vnetIds: [vnet.outputs.vnetId]
+//     tags: tags
+//   }
+// }
 
 
  // MARK: App Insights
