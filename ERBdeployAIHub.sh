@@ -1,22 +1,24 @@
 #!/bin/bash
 
-# Sample usage ./deployAIHub.sh -s sample-subscription
+# Sample usage ./deployAIHub.sh -s sample-subscription -d bicepparam-file
 
 red='\e[1;31m%s\e[0m\n'
 green='\e[1;32m%s\e[0m\n'
 blue='\e[1;34m%s\e[0m\n'
 
 #Get environment parameters for deployment from bicep param file
-DEPLOYMENT_PARAM_FILE="./deploy.qa.bicepparam"
+# DEPLOYMENT_PARAM_FILE="./deploy.qa.bicepparam"
 
 SUBSCRIPTION=''
 
-while getopts 's:' flag; 
+while getopts 's:d:' flag; do
 do
   case "${flag}" in
     s) SUBSCRIPTION=${OPTARG} ;;  
+    d) DEPLOYMENT_PARAM_FILE=${OPTARG} ;;  
   esac
 done
+
 
 # read -p "Input the Subscription Id for the deployment: " SUBSCRIPTION
 
