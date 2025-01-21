@@ -11,7 +11,7 @@ blue='\e[1;34m%s\e[0m\n'
 
 SUBSCRIPTION=''
 
-while getopts 's:d:' flag; do
+while getopts 's:d:' flag;
 do
   case "${flag}" in
     s) SUBSCRIPTION=${OPTARG} ;;  
