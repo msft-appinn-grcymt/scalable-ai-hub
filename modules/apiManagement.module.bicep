@@ -19,7 +19,7 @@ param skuName string
 @description('If provided then the identity type will be set to UserAssigned. If passed empty then the identity type will be set to SystemAssigned')
 param userAssignedIdentityId string?
 
-param publisherEmail string = 'system@gsis.gr'
+param publisherEmail string = 'system@erb.gr'
 param publisherName string = 'system'
 
 @description('The subnet id of the subnet to deploy the API Management service to.')
@@ -863,4 +863,3 @@ output products array = [ for (aiProduct,i) in aiProducts : products[i].name]
 //     ]
 //   }
 // }
-
