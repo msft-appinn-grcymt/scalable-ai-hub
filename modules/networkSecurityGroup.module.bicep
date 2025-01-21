@@ -416,7 +416,7 @@ var apimRules = apim ? [
    }
   }        
   {
-    name: 'Deny_All_Internet_Outbound'
+    name: 'Allow_All_Internet_Outbound'
     properties: {
       protocol: '*'
       sourcePortRange: '*'
